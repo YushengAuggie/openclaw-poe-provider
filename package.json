@@ -13,14 +13,27 @@
     "lint": "tsc --noEmit"
   },
   "openclaw": {
-    "extensions": ["./dist/index.js"],
-    "providers": ["poe"],
+    "extensions": [
+      "./dist/index.js"
+    ],
+    "providers": [
+      "poe"
+    ],
     "compat": {
       "pluginApi": ">=2026.3.24-beta.2",
       "minGatewayVersion": "2026.3.24-beta.2"
     }
   },
-  "keywords": ["openclaw", "poe", "ai", "provider", "image-generation", "video-generation", "tts", "music"],
+  "keywords": [
+    "openclaw",
+    "poe",
+    "ai",
+    "provider",
+    "image-generation",
+    "video-generation",
+    "tts",
+    "music"
+  ],
   "author": "Auggie Ding",
   "license": "MIT",
   "repository": {
@@ -28,6 +41,7 @@
     "url": "https://github.com/YushengAuggie/openclaw-poe-provider.git"
   },
   "devDependencies": {
+    "@types/node": "^25.5.2",
     "typescript": "^5.8.0",
     "vitest": "^3.1.0"
   }
