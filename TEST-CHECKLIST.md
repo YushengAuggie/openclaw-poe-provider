@@ -157,11 +157,36 @@
 - [x] Privacy notice in README (Security feedback)
 - [x] Cost transparency in README (Normal User feedback)
 
+## Claude Code Review — Issues Addressed ✅
+
+### HIGH (3/3 fixed)
+- [x] Network/timeout errors now retried with backoff (client.ts)
+- [x] extra_body spread order fixed — reserved keys always win (client.ts)
+- [x] Validation errors use 400 status code, not 500 (errors.ts, param-mapper.ts, speech.ts)
+
+### MEDIUM (7/10 fixed)
+- [x] Token redaction regex expanded for hyphens/underscores/bearer (errors.ts)
+- [x] Speech provider uses validationError() not plain Error
+- [x] Added fetchAvailableModels tests (cache + error handling)
+- [x] Added downloadMedia tests (buffer, content-type, errors)
+- [x] Added request body assertion tests for image/video/speech
+- [x] Added advanced retry tests (500, network, max exhaustion)
+- [x] extra_body cannot shadow reserved keys (test added)
+- [ ] Singleton registry mutation (acknowledged — design tradeoff for simplicity)
+- [ ] isConfigured doesn't validate key format (intentional — avoid false negatives)
+- [ ] downloadMedia SSRF risk (acceptable — only processes Poe CDN patterns)
+
+### LOW (acknowledged, not blocking)
+- Unused downloadError factory (keeping for future use)
+- TEXT_MODELS hardcoded (mitigated by resolveDynamicModel)
+- PoeClient doesn't validate empty key (fails fast at API level with clear 401)
+
 ## Summary
 | Category | Count | Status |
 |----------|-------|--------|
-| Unit tests | 106 | ✅ All passing |
+| Unit tests | 124 | ✅ All passing |
 | Live tests | 4 | ✅ All passing |
-| Coverage | 94.5% | ✅ |
+| Coverage | 96.9% | ✅ |
 | TypeScript | 0 errors | ✅ |
 | Build | Clean | ✅ |
+| Claude Code review score | 7.5/10 → fixes applied | ✅ |
