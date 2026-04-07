@@ -5,6 +5,7 @@
  * - Security: Never log API keys in error messages
  * - UX/UI/Normal User: Human-readable errors with billing context
  * - UI: Explicit error state copy for each failure mode
+ * - Claude Code review: Consistent error types (validation = 400, not 500)
  */
 
 import { PoeApiError } from "./client.js";
@@ -16,6 +17,7 @@ export const ErrorCodes = {
   DOWNLOAD_FAILED: "DOWNLOAD_FAILED",
   INVALID_MODEL: "INVALID_MODEL",
   NOT_CONFIGURED: "NOT_CONFIGURED",
+  VALIDATION_ERROR: "VALIDATION_ERROR",
 } as const;
 
 /**
@@ -44,7 +46,7 @@ export function noMediaUrlError(
   // Truncate and sanitize the response snippet (never include full response)
   const sanitized = responseSnippet
     .substring(0, 200)
-    .replace(/[A-Za-z0-9]{20,}/g, "[REDACTED]"); // Redact anything that looks like a token
+    .replace(/[A-Za-z0-9_-]{20,}/g, "[REDACTED]"); // Redact tokens (incl. hyphens/underscores)
 
   return new PoeApiError(
     `${botType} bot "${model}" returned no ${botType.toLowerCase()} URL. ` +
@@ -85,6 +87,13 @@ export function notConfiguredError(): PoeApiError {
 }
 
 /**
+ * Create a 400-class validation error (prompt too short, empty text, etc.)
+ */
+export function validationError(message: string): PoeApiError {
+  return new PoeApiError(message, 400, ErrorCodes.VALIDATION_ERROR, false);
+}
+
+/**
  * Wrap an unknown error into a PoeApiError with safe messaging.
  * Used in catch blocks to ensure consistent error types.
  */
@@ -94,9 +103,9 @@ export function wrapError(err: unknown, context: string): PoeApiError {
   const message =
     err instanceof Error ? err.message : String(err);
 
-  // Sanitize: remove anything that looks like an API key
+  // Sanitize: remove anything that looks like an API key or bearer token
   const sanitized = message.replace(
-    /(?:key|token|auth)[=:]\s*\S+/gi,
+    /(?:key|token|auth|bearer)[=:\s]+\S+/gi,
     "[REDACTED]",
   );
 

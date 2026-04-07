@@ -12,7 +12,7 @@ import type {
 } from "../types.js";
 import { PoeClient } from "../client.js";
 import { extractAudioUrl, downloadMedia } from "../adapters/media-extractor.js";
-import { emptyResponseError, noMediaUrlError, wrapError } from "../errors.js";
+import { emptyResponseError, noMediaUrlError, validationError, wrapError } from "../errors.js";
 import { resolveModelForCapability } from "../models.js";
 
 export function createSpeechProvider(apiKey: string): SpeechProvider {
@@ -28,7 +28,7 @@ export function createSpeechProvider(apiKey: string): SpeechProvider {
       const model = resolveModelForCapability(req.model, "speech");
 
       if (!req.text?.trim()) {
-        throw new Error("Speech synthesis: text cannot be empty");
+        throw validationError("Speech synthesis: text cannot be empty");
       }
 
       try {

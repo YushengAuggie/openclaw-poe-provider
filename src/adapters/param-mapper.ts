@@ -76,16 +76,19 @@ export function buildMusicPrompt(req: MusicGenerationRequest): string {
   return prompt;
 }
 
+import { validationError } from "../errors.js";
+
 /**
  * Validate that a prompt is not empty or trivially short.
+ * Throws a 400-class PoeApiError (not a generic Error).
  */
 export function validatePrompt(prompt: string, context: string): void {
   const trimmed = prompt.trim();
   if (!trimmed) {
-    throw new Error(`${context}: prompt cannot be empty`);
+    throw validationError(`${context}: prompt cannot be empty`);
   }
   if (trimmed.length < 2) {
-    throw new Error(
+    throw validationError(
       `${context}: prompt too short (${trimmed.length} chars). Please provide a more descriptive prompt.`,
     );
   }

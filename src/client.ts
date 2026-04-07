@@ -71,10 +71,11 @@ export class PoeClient {
    */
   async chatCompletion(req: ChatCompletionRequest): Promise<PoeApiResponse> {
     const body: Record<string, unknown> = {
+      ...req.extra_body,
+      // Reserved keys always win — spread extra_body first
       model: req.model,
       messages: req.messages,
       stream: req.stream ?? false,
-      ...req.extra_body,
     };
 
     return this.fetchWithRetry<PoeApiResponse>(
@@ -145,7 +146,19 @@ export class PoeClient {
       return (await response.json()) as T;
     } catch (error) {
       if (error instanceof PoeApiError) throw error;
-      if (error instanceof DOMException && error.name === "AbortError") {
+
+      // Retry timeout and network errors with backoff
+      const isTimeout =
+        error instanceof DOMException && error.name === "AbortError";
+      const isNetworkError = !isTimeout && !(error instanceof PoeApiError);
+
+      if ((isTimeout || isNetworkError) && attempt < MAX_RETRIES) {
+        const delay = RETRY_BASE_MS * Math.pow(2, attempt);
+        await new Promise((r) => setTimeout(r, delay));
+        return this.fetchWithRetry<T>(url, init, attempt + 1);
+      }
+
+      if (isTimeout) {
         throw new PoeApiError(
           `Request timed out after ${this.timeoutMs}ms`,
           408,
