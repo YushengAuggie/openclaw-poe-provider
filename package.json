@@ -1,0 +1,34 @@
+{
+  "name": "@auggie/openclaw-poe-provider",
+  "version": "1.0.0",
+  "description": "All-in-one Poe AI provider plugin for OpenClaw — text, image, video, TTS, and music from a single API key",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:live": "TEST_POE_LIVE=1 vitest run tests/live/",
+    "lint": "tsc --noEmit"
+  },
+  "openclaw": {
+    "extensions": ["./dist/index.js"],
+    "providers": ["poe"],
+    "compat": {
+      "pluginApi": ">=2026.3.24-beta.2",
+      "minGatewayVersion": "2026.3.24-beta.2"
+    }
+  },
+  "keywords": ["openclaw", "poe", "ai", "provider", "image-generation", "video-generation", "tts", "music"],
+  "author": "Auggie Ding",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YushengAuggie/openclaw-poe-provider.git"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}

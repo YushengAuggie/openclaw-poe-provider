@@ -1,0 +1,29 @@
+{
+  "id": "poe",
+  "name": "Poe",
+  "description": "All-in-one AI provider via Poe API — text, image, video, TTS, and music from a single API key",
+  "providers": ["poe"],
+  "modelSupport": {
+    "modelPrefixes": ["poe/"]
+  },
+  "providerAuthEnvVars": {
+    "poe": ["POE_API_KEY"]
+  },
+  "providerAuthChoices": [
+    {
+      "provider": "poe",
+      "method": "api-key",
+      "choiceId": "poe-api-key",
+      "choiceLabel": "Poe API key",
+      "groupId": "poe",
+      "groupLabel": "Poe",
+      "cliFlag": "--poe-api-key",
+      "cliOption": "--poe-api-key <key>",
+      "cliDescription": "Poe API key (get yours at poe.com/api_key)"
+    }
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  }
+}
