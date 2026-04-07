@@ -11,8 +11,10 @@ import type {
   MusicGenerationResult,
   MusicModel,
 } from "../types.js";
-import { PoeClient, PoeApiError } from "../client.js";
+import { PoeClient } from "../client.js";
 import { extractMusicData, downloadMedia } from "../adapters/media-extractor.js";
+import { buildMusicPrompt, validatePrompt } from "../adapters/param-mapper.js";
+import { emptyResponseError, noMediaUrlError, wrapError } from "../errors.js";
 import { resolveModelForCapability } from "../models.js";
 import { defaultRegistry } from "../registry.js";
 
@@ -35,45 +37,39 @@ export function createMusicProvider(apiKey: string): MusicGenerationProvider {
 
     async generate(req: MusicGenerationRequest): Promise<MusicGenerationResult> {
       const model = resolveModelForCapability(req.model, "music");
+      const prompt = buildMusicPrompt(req);
+      validatePrompt(prompt, "Music generation");
 
-      let prompt = req.prompt;
-      if (req.instrumental) prompt += " [instrumental only, no vocals]";
-      if (req.durationSeconds) prompt += ` [duration: ${req.durationSeconds}s]`;
+      try {
+        const response = await client.chatCompletion({
+          model,
+          messages: [{ role: "user", content: prompt }],
+          stream: false,
+        });
 
-      // If lyrics are provided, include them
-      if (req.lyrics) {
-        prompt += `\n\nLyrics:\n${req.lyrics}`;
+        const content = response.choices[0]?.message?.content;
+        if (!content) {
+          throw emptyResponseError("Music", model);
+        }
+
+        const extracted = extractMusicData(content);
+        if (!extracted) {
+          throw noMediaUrlError("Music", model, content);
+        }
+
+        const { buffer, contentType } = await downloadMedia(extracted.url);
+
+        return {
+          audio: {
+            url: extracted.url,
+            buffer,
+            mimeType: contentType,
+          },
+          description: extracted.description,
+        };
+      } catch (err) {
+        throw wrapError(err, `Music generation with ${model}`);
       }
-
-      const response = await client.chatCompletion({
-        model,
-        messages: [{ role: "user", content: prompt }],
-        stream: false,
-      });
-
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new PoeApiError("Empty response from music bot", 500);
-      }
-
-      const extracted = extractMusicData(content);
-      if (!extracted) {
-        throw new PoeApiError(
-          `Music bot "${model}" returned no audio URL. Response: ${content.substring(0, 200)}`,
-          500,
-        );
-      }
-
-      const { buffer, contentType } = await downloadMedia(extracted.url);
-
-      return {
-        audio: {
-          url: extracted.url,
-          buffer,
-          mimeType: contentType,
-        },
-        description: extracted.description,
-      };
     },
   };
 }

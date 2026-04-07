@@ -93,7 +93,7 @@ describe("createImageProvider", () => {
 
     const provider = createImageProvider("test-key");
     await expect(provider.generate({ prompt: "test" })).rejects.toThrow(
-      "no image URLs",
+      "no image URL",
     );
   });
 });

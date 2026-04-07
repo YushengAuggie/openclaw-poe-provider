@@ -10,8 +10,9 @@ import type {
   SpeechSynthesisRequest,
   SpeechSynthesisResult,
 } from "../types.js";
-import { PoeClient, PoeApiError } from "../client.js";
+import { PoeClient } from "../client.js";
 import { extractAudioUrl, downloadMedia } from "../adapters/media-extractor.js";
+import { emptyResponseError, noMediaUrlError, wrapError } from "../errors.js";
 import { resolveModelForCapability } from "../models.js";
 
 export function createSpeechProvider(apiKey: string): SpeechProvider {
@@ -26,44 +27,49 @@ export function createSpeechProvider(apiKey: string): SpeechProvider {
     async synthesize(req: SpeechSynthesisRequest): Promise<SpeechSynthesisResult> {
       const model = resolveModelForCapability(req.model, "speech");
 
-      const response = await client.chatCompletion({
-        model,
-        messages: [{ role: "user", content: req.text }],
-        stream: false,
-      });
-
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new PoeApiError("Empty response from TTS bot", 500);
+      if (!req.text?.trim()) {
+        throw new Error("Speech synthesis: text cannot be empty");
       }
 
-      const extracted = extractAudioUrl(content);
-      if (!extracted) {
-        throw new PoeApiError(
-          `TTS bot "${model}" returned no audio URL. Response: ${content.substring(0, 200)}`,
-          500,
-        );
+      try {
+        const response = await client.chatCompletion({
+          model,
+          messages: [{ role: "user", content: req.text }],
+          stream: false,
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (!content) {
+          throw emptyResponseError("TTS", model);
+        }
+
+        const extracted = extractAudioUrl(content);
+        if (!extracted) {
+          throw noMediaUrlError("TTS", model, content);
+        }
+
+        const { buffer, contentType } = await downloadMedia(extracted.url);
+
+        // Determine output format from content type
+        let outputFormat = "mp3";
+        let fileExtension = ".mp3";
+        if (contentType.includes("opus") || contentType.includes("ogg")) {
+          outputFormat = "opus";
+          fileExtension = ".ogg";
+        } else if (contentType.includes("wav")) {
+          outputFormat = "wav";
+          fileExtension = ".wav";
+        }
+
+        return {
+          audioBuffer: buffer,
+          outputFormat,
+          fileExtension,
+          voiceCompatible: outputFormat === "opus",
+        };
+      } catch (err) {
+        throw wrapError(err, `Speech synthesis with ${model}`);
       }
-
-      const { buffer, contentType } = await downloadMedia(extracted.url);
-
-      // Determine output format from content type
-      let outputFormat = "mp3";
-      let fileExtension = ".mp3";
-      if (contentType.includes("opus") || contentType.includes("ogg")) {
-        outputFormat = "opus";
-        fileExtension = ".ogg";
-      } else if (contentType.includes("wav")) {
-        outputFormat = "wav";
-        fileExtension = ".wav";
-      }
-
-      return {
-        audioBuffer: buffer,
-        outputFormat,
-        fileExtension,
-        voiceCompatible: outputFormat === "opus",
-      };
     },
   };
 }

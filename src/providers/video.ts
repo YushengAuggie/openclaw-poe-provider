@@ -11,8 +11,10 @@ import type {
   VideoGenerationResult,
   VideoModel,
 } from "../types.js";
-import { PoeClient, PoeApiError } from "../client.js";
+import { PoeClient } from "../client.js";
 import { extractVideoUrl, downloadMedia } from "../adapters/media-extractor.js";
+import { buildVideoPrompt, validatePrompt } from "../adapters/param-mapper.js";
+import { emptyResponseError, noMediaUrlError, wrapError } from "../errors.js";
 import { resolveModelForCapability } from "../models.js";
 import { defaultRegistry } from "../registry.js";
 
@@ -47,46 +49,46 @@ export function createVideoProvider(apiKey: string): VideoGenerationProvider {
 
     async generateVideo(req: VideoGenerationRequest): Promise<VideoGenerationResult> {
       const model = resolveModelForCapability(req.model, "video");
-
-      let prompt = req.prompt;
-      if (req.durationSeconds) prompt += ` [duration: ${req.durationSeconds}s]`;
-      if (req.aspectRatio) prompt += ` [aspect ratio: ${req.aspectRatio}]`;
-
-      const response = await client.chatCompletion({
-        model,
-        messages: [{ role: "user", content: prompt }],
-        stream: false,
-      });
-
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new PoeApiError("Empty response from video bot", 500);
-      }
-
-      const extracted = extractVideoUrl(content);
-      if (!extracted) {
-        throw new PoeApiError(
-          `Video bot "${model}" returned no video URL. Response: ${content.substring(0, 200)}`,
-          500,
-        );
-      }
+      const prompt = buildVideoPrompt(req);
+      validatePrompt(prompt, "Video generation");
 
       try {
-        const { buffer, contentType } = await downloadMedia(
-          extracted.url,
-          120_000,
-        );
-        return {
-          videos: [
-            {
-              url: extracted.url,
-              buffer,
-              mimeType: contentType,
-            },
-          ],
-        };
-      } catch {
-        return { videos: [{ url: extracted.url }] };
+        const response = await client.chatCompletion({
+          model,
+          messages: [{ role: "user", content: prompt }],
+          stream: false,
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (!content) {
+          throw emptyResponseError("Video", model);
+        }
+
+        const extracted = extractVideoUrl(content);
+        if (!extracted) {
+          throw noMediaUrlError("Video", model, content);
+        }
+
+        try {
+          const { buffer, contentType } = await downloadMedia(
+            extracted.url,
+            120_000,
+          );
+          return {
+            videos: [
+              {
+                url: extracted.url,
+                buffer,
+                mimeType: contentType,
+              },
+            ],
+          };
+        } catch {
+          // Graceful degradation: return URL without buffer
+          return { videos: [{ url: extracted.url }] };
+        }
+      } catch (err) {
+        throw wrapError(err, `Video generation with ${model}`);
       }
     },
   };

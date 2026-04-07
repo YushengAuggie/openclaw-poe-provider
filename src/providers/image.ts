@@ -11,8 +11,10 @@ import type {
   ImageGenerationResult,
   ImageModel,
 } from "../types.js";
-import { PoeClient, PoeApiError } from "../client.js";
+import { PoeClient } from "../client.js";
 import { extractImageUrls, downloadMedia } from "../adapters/media-extractor.js";
+import { buildImagePrompt, validatePrompt } from "../adapters/param-mapper.js";
+import { emptyResponseError, noMediaUrlError, wrapError } from "../errors.js";
 import { resolveModelForCapability } from "../models.js";
 import { defaultRegistry } from "../registry.js";
 
@@ -36,53 +38,51 @@ export function createImageProvider(apiKey: string): ImageGenerationProvider {
 
     async generate(req: ImageGenerationRequest): Promise<ImageGenerationResult> {
       const model = resolveModelForCapability(req.model, "image");
+      const prompt = buildImagePrompt(req);
+      validatePrompt(prompt, "Image generation");
 
-      // Build the prompt message
-      let prompt = req.prompt;
-      if (req.aspectRatio) prompt += ` [aspect ratio: ${req.aspectRatio}]`;
-      if (req.size) prompt += ` [size: ${req.size}]`;
+      try {
+        const response = await client.chatCompletion({
+          model,
+          messages: [{ role: "user", content: prompt }],
+          stream: false,
+        });
 
-      const response = await client.chatCompletion({
-        model,
-        messages: [{ role: "user", content: prompt }],
-        stream: false,
-      });
+        const content = response.choices[0]?.message?.content;
+        if (!content) {
+          throw emptyResponseError("Image", model);
+        }
 
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        throw new PoeApiError("Empty response from image bot", 500);
-      }
+        const extracted = extractImageUrls(content);
+        if (extracted.length === 0) {
+          throw noMediaUrlError("Image", model, content);
+        }
 
-      const extracted = extractImageUrls(content);
-      if (extracted.length === 0) {
-        throw new PoeApiError(
-          `Image bot "${model}" returned no image URLs. Response: ${content.substring(0, 200)}`,
-          500,
+        // Download images to buffers
+        const count = req.count ?? 1;
+        const imagesToProcess = extracted.slice(0, count);
+
+        const images = await Promise.all(
+          imagesToProcess.map(async (img) => {
+            try {
+              const { buffer, contentType } = await downloadMedia(img.url);
+              return {
+                url: img.url,
+                buffer,
+                mimeType: contentType,
+                revisedPrompt: img.altText,
+              };
+            } catch {
+              // If download fails, return URL-only result (graceful degradation)
+              return { url: img.url, revisedPrompt: img.altText };
+            }
+          }),
         );
+
+        return { images };
+      } catch (err) {
+        throw wrapError(err, `Image generation with ${model}`);
       }
-
-      // Download images to buffers
-      const count = req.count ?? 1;
-      const imagesToProcess = extracted.slice(0, count);
-
-      const images = await Promise.all(
-        imagesToProcess.map(async (img) => {
-          try {
-            const { buffer, contentType } = await downloadMedia(img.url);
-            return {
-              url: img.url,
-              buffer,
-              mimeType: contentType,
-              revisedPrompt: img.altText,
-            };
-          } catch {
-            // If download fails, return URL-only result
-            return { url: img.url, revisedPrompt: img.altText };
-          }
-        }),
-      );
-
-      return { images };
     },
   };
 }
