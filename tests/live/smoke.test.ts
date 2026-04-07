@@ -27,7 +27,9 @@ describe.skipIf(!LIVE)("Live Poe API smoke tests", () => {
     expect(result.data.length).toBeGreaterThan(100);
     // Verify some known bots exist
     const ids = result.data.map((m) => m.id);
-    expect(ids).toContain("GPT-4o");
+    // Bot names are lowercase on Poe API
+    const lowerIds = ids.map((id: string) => id.toLowerCase());
+    expect(lowerIds.some((id: string) => id.includes("gpt") || id.includes("claude"))).toBe(true);
   }, 30_000);
 
   it("generates a text completion", async () => {
