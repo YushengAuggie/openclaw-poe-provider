@@ -20,6 +20,7 @@ export interface PluginApi {
   registerVideoGenerationProvider(provider: VideoGenerationProvider): void;
   registerSpeechProvider(provider: SpeechProvider): void;
   registerMusicGenerationProvider?(provider: MusicGenerationProvider): void;
+  registerWebSearchProvider?(provider: WebSearchProvider): void;
 }
 
 export interface ProviderAuthMethod {
@@ -251,6 +252,48 @@ export interface GeneratedAudio {
   durationSeconds?: number;
 }
 
+// ── Web Search ─────────────────────────────────────────────────────────────
+
+export interface WebSearchProvider {
+  id: string;
+  label: string;
+  isConfigured(ctx: ConfigCheckContext): boolean;
+  search(req: WebSearchRequest): Promise<WebSearchResult>;
+}
+
+export interface WebSearchRequest {
+  query: string;
+  count?: number;
+}
+
+export interface WebSearchResult {
+  content: string;
+  citations?: Array<{ url: string; title?: string }>;
+}
+
+// ── Poe Responses API Types ────────────────────────────────────────────────
+
+export interface PoeResponsesApiRequest {
+  model: string;
+  input: string;
+  tools?: Array<{ type: string }>;
+  reasoning?: { effort: string };
+}
+
+export interface PoeResponsesApiResponse {
+  id: string;
+  output: Array<{
+    type: string;
+    content?: Array<{
+      type: string;
+      text?: string;
+      url?: string;
+      title?: string;
+    }>;
+  }>;
+  output_text?: string;
+}
+
 // ── Poe API Types ───────────────────────────────────────────────────────────
 
 export interface PoeApiResponse {
@@ -290,7 +333,7 @@ export interface PoeModelEntry {
 
 // ── Bot Registry ────────────────────────────────────────────────────────────
 
-export type BotCapability = "text" | "image" | "video" | "speech" | "music";
+export type BotCapability = "text" | "image" | "video" | "speech" | "music" | "search";
 
 export interface BotRegistryEntry {
   /** Poe bot name (used as model ID in API calls) */

@@ -17,12 +17,13 @@ import { createImageProvider } from "./providers/image.js";
 import { createVideoProvider } from "./providers/video.js";
 import { createSpeechProvider } from "./providers/speech.js";
 import { createMusicProvider } from "./providers/music.js";
+import { createSearchProvider } from "./providers/search.js";
 
 const poePlugin: PluginEntry = {
   id: "poe",
   name: "Poe",
   description:
-    "All-in-one AI provider via Poe API — text, image, video, TTS, and music from a single API key",
+    "All-in-one AI provider via Poe API — text, image, video, TTS, music, and web search from a single API key",
 
   register(api) {
     // Resolve API key from environment
@@ -41,6 +42,11 @@ const poePlugin: PluginEntry = {
       if (api.registerMusicGenerationProvider) {
         api.registerMusicGenerationProvider(createMusicProvider(apiKey));
       }
+
+      // Web search is optional (not all OpenClaw versions support it)
+      if (api.registerWebSearchProvider) {
+        api.registerWebSearchProvider(createSearchProvider(apiKey));
+      }
     }
   },
 };
@@ -53,6 +59,7 @@ export { createImageProvider } from "./providers/image.js";
 export { createVideoProvider } from "./providers/video.js";
 export { createSpeechProvider } from "./providers/speech.js";
 export { createMusicProvider } from "./providers/music.js";
+export { createSearchProvider } from "./providers/search.js";
 export { PoeClient, PoeApiError } from "./client.js";
 export { BotRegistry, defaultRegistry } from "./registry.js";
 export type * from "./types.js";

@@ -65,7 +65,7 @@ export function clearModelsCache(): void {
  */
 export function resolveModelForCapability(
   requestedModel: string | undefined,
-  capability: "image" | "video" | "speech" | "music",
+  capability: "image" | "video" | "speech" | "music" | "search",
   registry: BotRegistry = defaultRegistry,
 ): string {
   if (requestedModel) {
@@ -89,6 +89,7 @@ export function resolveModelForCapability(
     video: "veo-3-fast",
     speech: "elevenlabs-v3",
     music: "lyria-3",
+    search: "GPT-5.4",
   };
   return fallbacks[capability];
 }

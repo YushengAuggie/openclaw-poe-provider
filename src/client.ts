@@ -5,7 +5,7 @@
  * error mapping, and media-specific request options.
  */
 
-import type { PoeApiResponse, PoeModelsResponse } from "./types.js";
+import type { PoeApiResponse, PoeModelsResponse, PoeResponsesApiRequest, PoeResponsesApiResponse } from "./types.js";
 
 const POE_BASE_URL = "https://api.poe.com/v1";
 const DEFAULT_TIMEOUT_MS = 120_000;
@@ -80,6 +80,33 @@ export class PoeClient {
 
     return this.fetchWithRetry<PoeApiResponse>(
       `${this.baseUrl}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      },
+    );
+  }
+
+  /**
+   * Send a request to the Poe Responses API with web search tool.
+   * This is a different endpoint from chat completions.
+   */
+  async responsesApiSearch(req: {
+    model: string;
+    query: string;
+  }): Promise<PoeResponsesApiResponse> {
+    const body: PoeResponsesApiRequest = {
+      model: req.model,
+      input: req.query,
+      tools: [{ type: "web_search_preview" }],
+    };
+
+    return this.fetchWithRetry<PoeResponsesApiResponse>(
+      `${this.baseUrl}/responses`,
       {
         method: "POST",
         headers: {

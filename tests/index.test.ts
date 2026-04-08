@@ -28,6 +28,7 @@ describe("Plugin entry point", () => {
       registerVideoGenerationProvider: vi.fn(),
       registerSpeechProvider: vi.fn(),
       registerMusicGenerationProvider: vi.fn(),
+      registerWebSearchProvider: vi.fn(),
     };
 
     poePlugin.register(api);
@@ -38,6 +39,7 @@ describe("Plugin entry point", () => {
     expect(api.registerVideoGenerationProvider).not.toHaveBeenCalled();
     expect(api.registerSpeechProvider).not.toHaveBeenCalled();
     expect(api.registerMusicGenerationProvider).not.toHaveBeenCalled();
+    expect(api.registerWebSearchProvider).not.toHaveBeenCalled();
   });
 
   it("registers all providers when API key is set", () => {
@@ -49,6 +51,7 @@ describe("Plugin entry point", () => {
       registerVideoGenerationProvider: vi.fn(),
       registerSpeechProvider: vi.fn(),
       registerMusicGenerationProvider: vi.fn(),
+      registerWebSearchProvider: vi.fn(),
     };
 
     poePlugin.register(api);
@@ -58,6 +61,7 @@ describe("Plugin entry point", () => {
     expect(api.registerVideoGenerationProvider).toHaveBeenCalledTimes(1);
     expect(api.registerSpeechProvider).toHaveBeenCalledTimes(1);
     expect(api.registerMusicGenerationProvider).toHaveBeenCalledTimes(1);
+    expect(api.registerWebSearchProvider).toHaveBeenCalledTimes(1);
   });
 
   it("gracefully handles missing registerMusicGenerationProvider", () => {
@@ -70,12 +74,52 @@ describe("Plugin entry point", () => {
       registerSpeechProvider: vi.fn(),
       // Music registration not available (older OpenClaw version)
       registerMusicGenerationProvider: undefined,
+      registerWebSearchProvider: vi.fn(),
     };
 
     // Should not throw
     expect(() => poePlugin.register(api)).not.toThrow();
     expect(api.registerProvider).toHaveBeenCalledTimes(1);
     expect(api.registerImageGenerationProvider).toHaveBeenCalledTimes(1);
+  });
+
+  it("registers search provider when API key is set and registerWebSearchProvider is available", () => {
+    process.env.POE_API_KEY = "test-key-123";
+
+    let capturedProvider: any;
+    const api: PluginApi = {
+      registerProvider: vi.fn(),
+      registerImageGenerationProvider: vi.fn(),
+      registerVideoGenerationProvider: vi.fn(),
+      registerSpeechProvider: vi.fn(),
+      registerMusicGenerationProvider: vi.fn(),
+      registerWebSearchProvider: vi.fn((p) => { capturedProvider = p; }),
+    };
+
+    poePlugin.register(api);
+
+    expect(api.registerWebSearchProvider).toHaveBeenCalledTimes(1);
+    expect(capturedProvider.id).toBe("poe");
+    expect(capturedProvider.label).toBe("Poe Search");
+    expect(capturedProvider.isConfigured({})).toBe(true);
+  });
+
+  it("gracefully handles missing registerWebSearchProvider", () => {
+    process.env.POE_API_KEY = "test-key-123";
+
+    const api: PluginApi = {
+      registerProvider: vi.fn(),
+      registerImageGenerationProvider: vi.fn(),
+      registerVideoGenerationProvider: vi.fn(),
+      registerSpeechProvider: vi.fn(),
+      registerMusicGenerationProvider: vi.fn(),
+      // Search registration not available (older OpenClaw version)
+      registerWebSearchProvider: undefined,
+    };
+
+    // Should not throw
+    expect(() => poePlugin.register(api)).not.toThrow();
+    expect(api.registerProvider).toHaveBeenCalledTimes(1);
   });
 
   it("registered text provider has correct id", () => {
@@ -88,6 +132,7 @@ describe("Plugin entry point", () => {
       registerVideoGenerationProvider: vi.fn(),
       registerSpeechProvider: vi.fn(),
       registerMusicGenerationProvider: vi.fn(),
+      registerWebSearchProvider: vi.fn(),
     };
 
     poePlugin.register(api);
@@ -107,6 +152,7 @@ describe("Plugin entry point", () => {
       registerVideoGenerationProvider: vi.fn(),
       registerSpeechProvider: vi.fn(),
       registerMusicGenerationProvider: vi.fn(),
+      registerWebSearchProvider: vi.fn(),
     };
 
     poePlugin.register(api);

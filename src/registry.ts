@@ -59,6 +59,12 @@ const DEFAULT_BOTS: BotRegistryEntry[] = [
   { botName: "lyria", displayName: "Lyria", capability: "music" },
   { botName: "elevenlabs-music", displayName: "ElevenLabs Music", capability: "music" },
   { botName: "stable-audio-2.5", displayName: "Stable Audio 2.5", capability: "music" },
+
+  // ── Search ──
+  { botName: "GPT-5.4", displayName: "GPT-5.4 Search", capability: "search", isDefault: true },
+  { botName: "GPT-5.2", displayName: "GPT-5.2 Search", capability: "search" },
+  { botName: "Claude-Sonnet-4.6", displayName: "Claude Sonnet Search", capability: "search" },
+  { botName: "Gemini-3-Flash", displayName: "Gemini Flash Search", capability: "search" },
 ];
 
 // ── Registry Class ──────────────────────────────────────────────────────────

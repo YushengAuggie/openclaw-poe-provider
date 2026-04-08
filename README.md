@@ -9,6 +9,7 @@ An OpenClaw provider plugin that uses a single [Poe API](https://poe.com/api_key
 - 🎬 **Video Generation** — Veo 3, Runway Gen 4, Kling, Seedance
 - 🗣️ **Speech/TTS** — ElevenLabs, Gemini TTS, GPT Audio, Orpheus
 - 🎵 **Music Generation** — Lyria 3, Stable Audio, ElevenLabs Music
+- 🔍 **Web Search** — GPT-5.4, Claude Sonnet, Gemini Flash (via Responses API)
 
 Replace 5+ separate API keys with one `POE_API_KEY`.
 
@@ -25,7 +26,7 @@ export POE_API_KEY=your-key-here   # Get one at poe.com/api_key
 openclaw gateway restart
 ```
 
-That's it. OpenClaw will now use Poe for text, image, video, TTS, and music.
+That's it. OpenClaw will now use Poe for text, image, video, TTS, music, and web search.
 
 ## Compute Point Costs
 
@@ -40,6 +41,7 @@ Poe uses **compute points** instead of per-token pricing. Your subscription tier
 | Video | Veo 3 | ~1000–5000 | Per video (30s generation time) |
 | TTS | ElevenLabs | ~50–200 | Per synthesis |
 | Music | Lyria 3 | ~200–500 | Per track |
+| Search | GPT-5.4 | ~50–200 | Per query (via Responses API) |
 
 **Poe Subscription Tiers:**
 | Plan | Price | Points/Month |
@@ -90,6 +92,14 @@ Check your remaining points at [poe.com/settings/billing](https://poe.com/settin
 | `elevenlabs-music` | ElevenLabs Music | ElevenLabs |
 | `stable-audio-2.5` | Stable Audio 2.5 | Stability AI |
 
+### Web Search
+| Model ID | Name | Notes |
+|---|---|---|
+| `GPT-5.4` | GPT-5.4 Search | **Default.** Uses Responses API |
+| `GPT-5.2` | GPT-5.2 Search | OpenAI |
+| `Claude-Sonnet-4.6` | Claude Sonnet Search | Anthropic |
+| `Gemini-3-Flash` | Gemini Flash Search | Google |
+
 ## Usage with OpenClaw
 
 Once installed, the plugin integrates seamlessly:
@@ -106,6 +116,8 @@ openclaw model set poe/claude-opus-4-6
 
 # TTS — automatically uses Poe when configured
 # Music generation — automatically uses Poe when configured
+
+# Web search — uses Poe's Responses API with web_search_preview tool
 ```
 
 ## ⚠️ Privacy Notice
@@ -150,13 +162,15 @@ src/
 ├── types.ts              # OpenClaw plugin SDK type stubs
 ├── adapters/
 │   ├── media-extractor.ts  # Parse media URLs from bot responses
-│   └── param-mapper.ts     # Map OpenClaw params → Poe prompt format
+│   ├── param-mapper.ts     # Map OpenClaw params → Poe prompt format
+│   └── search-adapter.ts   # Parse Responses API output → search results
 └── providers/
     ├── text.ts           # Text/LLM provider
     ├── image.ts          # Image generation
     ├── video.ts          # Video generation
     ├── speech.ts         # TTS/speech synthesis
-    └── music.ts          # Music generation
+    ├── music.ts          # Music generation
+    └── search.ts         # Web search (Responses API)
 ```
 
 ## Development
