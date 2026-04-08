@@ -70,6 +70,27 @@ describe("extractImageUrls", () => {
     expect(images).toHaveLength(1);
     expect(images[0].url).toContain(".png");
   });
+
+  it("falls back to non-Poe CDN URLs with .webp extension", () => {
+    const content = "Here: https://cdn.example.com/photo.webp";
+    const images = extractImageUrls(content);
+    expect(images).toHaveLength(1);
+    expect(images[0].url).toContain(".webp");
+  });
+
+  it("falls back to non-Poe CDN URLs with .gif extension", () => {
+    const content = "Animated: https://cdn.example.com/animation.gif";
+    const images = extractImageUrls(content);
+    expect(images).toHaveLength(1);
+    expect(images[0].url).toContain(".gif");
+  });
+
+  it("falls back to non-Poe CDN URLs with .svg extension", () => {
+    const content = "Vector: https://cdn.example.com/logo.svg";
+    const images = extractImageUrls(content);
+    expect(images).toHaveLength(1);
+    expect(images[0].url).toContain(".svg");
+  });
 });
 
 // ── Audio/TTS Extraction ────────────────────────────────────────────────────
@@ -100,6 +121,20 @@ describe("extractAudioUrl", () => {
     expect(audio).not.toBeNull();
     expect(audio!.url).toContain(".mp3");
   });
+
+  it("falls back to .flac extension", () => {
+    const content = "Lossless: https://cdn.example.com/track.flac";
+    const audio = extractAudioUrl(content);
+    expect(audio).not.toBeNull();
+    expect(audio!.url).toContain(".flac");
+  });
+
+  it("falls back to .aac extension", () => {
+    const content = "Audio: https://cdn.example.com/sound.aac";
+    const audio = extractAudioUrl(content);
+    expect(audio).not.toBeNull();
+    expect(audio!.url).toContain(".aac");
+  });
 });
 
 // ── Video Extraction ────────────────────────────────────────────────────────
@@ -121,6 +156,20 @@ describe("extractVideoUrl", () => {
     const video = extractVideoUrl(content);
     expect(video).not.toBeNull();
     expect(video!.url).toContain(".mp4");
+  });
+
+  it("falls back to .webm extension", () => {
+    const content = "Video: https://cdn.example.com/clip.webm";
+    const video = extractVideoUrl(content);
+    expect(video).not.toBeNull();
+    expect(video!.url).toContain(".webm");
+  });
+
+  it("falls back to .mkv extension", () => {
+    const content = "Video: https://cdn.example.com/movie.mkv";
+    const video = extractVideoUrl(content);
+    expect(video).not.toBeNull();
+    expect(video!.url).toContain(".mkv");
   });
 });
 
@@ -149,6 +198,14 @@ describe("extractMusicData", () => {
 
   it("returns null for non-audio content", () => {
     expect(extractMusicData("No audio here")).toBeNull();
+  });
+
+  it("handles audio URL at the very start of content (no description)", () => {
+    const url = "https://pfst.cf2.poecdn.net/base/audio/startaudio123";
+    const music = extractMusicData(url);
+    expect(music).not.toBeNull();
+    expect(music!.url).toBe(url);
+    expect(music!.description).toBeUndefined();
   });
 });
 

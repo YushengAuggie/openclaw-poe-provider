@@ -69,4 +69,35 @@ describe("BotRegistry", () => {
     expect(registry.defaultFor("image")).toBeUndefined();
     expect(registry.allBotNames()).toEqual([]);
   });
+
+  it("allEntries returns all registered entries", () => {
+    const registry = new BotRegistry([
+      { botName: "bot-a", displayName: "A", capability: "image" },
+      { botName: "bot-b", displayName: "B", capability: "video" },
+      { botName: "bot-c", displayName: "C", capability: "speech" },
+    ]);
+    const entries = registry.allEntries();
+    expect(entries).toHaveLength(3);
+    expect(entries.map((e) => e.botName).sort()).toEqual(["bot-a", "bot-b", "bot-c"]);
+  });
+
+  it("defaultFor returns first bot when no isDefault flag exists", () => {
+    const registry = new BotRegistry([
+      { botName: "first", displayName: "First", capability: "image" },
+      { botName: "second", displayName: "Second", capability: "image" },
+    ]);
+    const def = registry.defaultFor("image");
+    expect(def).toBeDefined();
+    expect(def!.botName).toBe("first");
+    expect(def!.isDefault).toBeUndefined();
+  });
+
+  it("defaultFor prefers isDefault over first entry", () => {
+    const registry = new BotRegistry([
+      { botName: "first", displayName: "First", capability: "image" },
+      { botName: "default-one", displayName: "Default", capability: "image", isDefault: true },
+    ]);
+    const def = registry.defaultFor("image");
+    expect(def!.botName).toBe("default-one");
+  });
 });

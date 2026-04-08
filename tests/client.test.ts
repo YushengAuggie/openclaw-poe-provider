@@ -103,6 +103,18 @@ describe("PoeApiError", () => {
     expect(err.userMessage).toContain("poe.com/settings/billing");
   });
 
+  it("provides billing link for 402 with 'insufficient' in message", () => {
+    const err = new PoeApiError("insufficient compute points", 402);
+    expect(err.userMessage).toContain("poe.com/settings/billing");
+    expect(err.userMessage).toContain("compute points exhausted");
+  });
+
+  it("provides billing link for non-402 with 'insufficient' in message", () => {
+    // The userMessage getter checks statusCode === 402 OR message includes "insufficient"
+    const err = new PoeApiError("insufficient balance", 200);
+    expect(err.userMessage).toContain("poe.com/settings/billing");
+  });
+
   it("provides user message for 429", () => {
     const err = new PoeApiError("Too many requests", 429);
     expect(err.userMessage).toContain("rate limit");

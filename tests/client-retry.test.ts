@@ -83,6 +83,42 @@ describe("PoeClient advanced retry scenarios", () => {
     expect(mockFetch).toHaveBeenCalledTimes(4);
   }, 15000);
 
+  it("retries on timeout (AbortError) then succeeds", async () => {
+    const abortError = new DOMException("The operation was aborted", "AbortError");
+    mockFetch
+      .mockRejectedValueOnce(abortError)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: "ok" } }] }),
+      });
+
+    const client = new PoeClient({ apiKey: "key", timeoutMs: 100 });
+    const result = await client.chatCompletion({
+      model: "test",
+      messages: [{ role: "user", content: "hi" }],
+    });
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(result.choices[0].message.content).toBe("ok");
+  });
+
+  it("throws timeout error after max retries on AbortError", async () => {
+    const abortError = new DOMException("The operation was aborted", "AbortError");
+    for (let i = 0; i < 4; i++) {
+      mockFetch.mockRejectedValueOnce(abortError);
+    }
+
+    const client = new PoeClient({ apiKey: "key", timeoutMs: 100 });
+    const err = await client
+      .chatCompletion({ model: "test", messages: [] })
+      .catch((e: unknown) => e);
+
+    expect(err).toBeInstanceOf(PoeApiError);
+    expect((err as PoeApiError).statusCode).toBe(408);
+    expect((err as PoeApiError).poeErrorCode).toBe("timeout");
+    expect(mockFetch).toHaveBeenCalledTimes(4);
+  }, 15000);
+
   it("extra_body cannot override reserved keys", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,

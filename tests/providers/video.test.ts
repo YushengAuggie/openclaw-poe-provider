@@ -45,6 +45,55 @@ describe("createVideoProvider", () => {
     expect(result.videos[0].url).toBe(videoUrl);
   });
 
+  it("throws when no video URL found in response", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [
+          { message: { content: "Sorry, I cannot generate that video." } },
+        ],
+      }),
+    });
+
+    const provider = createVideoProvider("test-key");
+    await expect(
+      provider.generateVideo({ prompt: "test" }),
+    ).rejects.toThrow("no video URL");
+  });
+
+  it("reports configured when key exists", () => {
+    const provider = createVideoProvider("test-key");
+    expect(provider.isConfigured({})).toBe(true);
+  });
+
+  it("reports not configured when key is empty", () => {
+    const provider = createVideoProvider("");
+    expect(provider.isConfigured({})).toBe(false);
+  });
+
+  it("graceful degradation when download fails", async () => {
+    const videoUrl =
+      "https://pfst.cf2.poecdn.net/base/video/aabbccdd11223344";
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: videoUrl } }],
+      }),
+    });
+
+    // Download fails
+    mockFetch.mockRejectedValueOnce(new Error("Download failed"));
+
+    const provider = createVideoProvider("test-key");
+    const result = await provider.generateVideo({ prompt: "test" });
+
+    // Should return URL-only result without buffer
+    expect(result.videos).toHaveLength(1);
+    expect(result.videos[0].url).toBe(videoUrl);
+    expect(result.videos[0].buffer).toBeUndefined();
+  });
+
   it("throws on empty response", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,

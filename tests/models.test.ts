@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { resolveModelForCapability, clearModelsCache } from "../src/models.js";
+import { resolveModelForCapability, clearModelsCache, TEXT_MODELS } from "../src/models.js";
 import { BotRegistry } from "../src/registry.js";
 
 describe("resolveModelForCapability", () => {
@@ -35,5 +35,39 @@ describe("resolveModelForCapability", () => {
     expect(resolveModelForCapability(undefined, "video", registry)).toBe("veo-3-fast");
     expect(resolveModelForCapability(undefined, "speech", registry)).toBe("elevenlabs-v3");
     expect(resolveModelForCapability(undefined, "music", registry)).toBe("lyria-3");
+  });
+});
+
+describe("TEXT_MODELS", () => {
+  it("is a non-empty array", () => {
+    expect(TEXT_MODELS.length).toBeGreaterThan(0);
+  });
+
+  it("all entries have required fields", () => {
+    for (const model of TEXT_MODELS) {
+      expect(model.id).toBeDefined();
+      expect(typeof model.id).toBe("string");
+      expect(model.id.length).toBeGreaterThan(0);
+
+      expect(model.name).toBeDefined();
+      expect(typeof model.name).toBe("string");
+      expect(model.name.length).toBeGreaterThan(0);
+
+      expect(typeof model.reasoning).toBe("boolean");
+
+      expect(Array.isArray(model.input)).toBe(true);
+      expect(model.input!.length).toBeGreaterThan(0);
+
+      expect(typeof model.contextWindow).toBe("number");
+      expect(model.contextWindow!).toBeGreaterThan(0);
+
+      expect(typeof model.maxTokens).toBe("number");
+      expect(model.maxTokens!).toBeGreaterThan(0);
+    }
+  });
+
+  it("has no duplicate IDs", () => {
+    const ids = TEXT_MODELS.map((m) => m.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

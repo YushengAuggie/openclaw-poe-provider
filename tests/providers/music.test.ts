@@ -80,6 +80,59 @@ describe("createMusicProvider", () => {
     expect(callBody.messages[0].content).toContain("instrumental");
   });
 
+  it("throws when no music URL found in response", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [
+          { message: { content: "Sorry, I cannot generate that music." } },
+        ],
+      }),
+    });
+
+    const provider = createMusicProvider("test-key");
+    await expect(
+      provider.generate({ prompt: "test" }),
+    ).rejects.toThrow("no music URL");
+  });
+
+  it("reports configured when key exists", () => {
+    const provider = createMusicProvider("test-key");
+    expect(provider.isConfigured({})).toBe(true);
+  });
+
+  it("reports not configured when key is empty", () => {
+    const provider = createMusicProvider("");
+    expect(provider.isConfigured({})).toBe(false);
+  });
+
+  it("passes duration parameter in prompt", async () => {
+    const audioUrl =
+      "https://pfst.cf2.poecdn.net/base/audio/dur123";
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        choices: [{ message: { content: audioUrl } }],
+      }),
+    });
+
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(1000),
+      headers: new Headers({ "content-type": "audio/mpeg" }),
+    });
+
+    const provider = createMusicProvider("test-key");
+    await provider.generate({
+      prompt: "jazz",
+      durationSeconds: 30,
+    });
+
+    const callBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+    expect(callBody.messages[0].content).toContain("[duration: 30s]");
+  });
+
   it("throws on empty response", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
